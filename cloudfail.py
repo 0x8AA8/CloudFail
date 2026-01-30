@@ -145,27 +145,36 @@ def dnsdumpster(target):
             provider = str(entry.get('provider', ''))
             if "Cloudflare" not in provider:
                 found_any = True
+                ip = entry.get('ip', '')
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:HOST] " + Fore.GREEN + "{domain} {ip} {as} {provider} {country}".format(
                         **entry))
+                print_ip_only(ip)
+                add_finding('host', {'source': 'dnsdumpster', **entry})
 
     if res['dns_records'].get('dns'):
         for entry in res['dns_records']['dns']:
             provider = str(entry.get('provider', ''))
             if "Cloudflare" not in provider:
                 found_any = True
+                ip = entry.get('ip', '')
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:DNS] " + Fore.GREEN + "{domain} {ip} {as} {provider} {country}".format(
                         **entry))
+                print_ip_only(ip)
+                add_finding('dns', {'source': 'dnsdumpster', **entry})
 
     if res['dns_records'].get('mx'):
         for entry in res['dns_records']['mx']:
             provider = str(entry.get('provider', ''))
             if "Cloudflare" not in provider:
                 found_any = True
+                ip = entry.get('ip', '')
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:MX] " + Fore.GREEN + "{ip} {as} {provider} {domain}".format(
                         **entry))
+                print_ip_only(ip)
+                add_finding('mx', {'source': 'dnsdumpster', **entry})
 
     if not found_any:
         print_out(Fore.YELLOW + "No non-Cloudflare records found via DNSDumpster")
@@ -184,7 +193,10 @@ def crimeflare(target):
                 continue
     if (len(crimeFoundArray) != 0):
         for foundIp in crimeFoundArray:
-            print_out(Style.BRIGHT + Fore.WHITE + "[FOUND:IP] " + Fore.GREEN + "" + foundIp.strip())
+            ip = foundIp.strip()
+            print_out(Style.BRIGHT + Fore.WHITE + "[FOUND:IP] " + Fore.GREEN + "" + ip)
+            print_ip_only(ip)
+            add_finding('crimeflare_ip', {'source': 'crimeflare', 'ip': ip, 'domain': target})
     else:
         print_out("Did not find anything.")
 
@@ -383,6 +395,8 @@ def subdomain_scan(target, subdomains_file, threads=1, checkpoint_file="", skip_
                     found_count += 1
                     print_out(
                         Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.GREEN + subdomain + " IP: " + result['ip'] + " HTTP: " + result['http_status'])
+                    print_ip_only(result['ip'])
+                    add_finding('subdomain', {'source': 'wordlist', 'subdomain': subdomain, 'ip': result['ip'], 'http_status': result['http_status'], 'on_cloudflare': False})
                 elif result['on_cloudflare']:
                     print_out(
                         Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + subdomain + " ON CLOUDFLARE NETWORK!")
@@ -412,6 +426,8 @@ def subdomain_scan(target, subdomains_file, threads=1, checkpoint_file="", skip_
                             found_count += 1
                             print_out(
                                 Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.GREEN + result['subdomain'] + " IP: " + result['ip'] + " HTTP: " + result['http_status'])
+                            print_ip_only(result['ip'])
+                            add_finding('subdomain', {'source': 'wordlist', 'subdomain': result['subdomain'], 'ip': result['ip'], 'http_status': result['http_status'], 'on_cloudflare': False})
                         elif result['on_cloudflare']:
                             print_out(
                                 Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + result['subdomain'] + " ON CLOUDFLARE NETWORK!")
@@ -896,6 +912,8 @@ def scan_discovered_subdomains(target, subdomains, threads=1, skip_dup_ips=False
                 found_count += 1
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.GREEN + subdomain + " IP: " + result['ip'] + " HTTP: " + result['http_status'])
+                print_ip_only(result['ip'])
+                add_finding('subdomain', {'source': 'external', 'subdomain': subdomain, 'ip': result['ip'], 'http_status': result['http_status'], 'on_cloudflare': False})
             elif result['on_cloudflare']:
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + subdomain + " ON CLOUDFLARE NETWORK!")
@@ -923,6 +941,8 @@ def scan_discovered_subdomains(target, subdomains, threads=1, skip_dup_ips=False
                         found_count += 1
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.GREEN + result['subdomain'] + " IP: " + result['ip'] + " HTTP: " + result['http_status'])
+                        print_ip_only(result['ip'])
+                        add_finding('subdomain', {'source': 'external', 'subdomain': result['subdomain'], 'ip': result['ip'], 'http_status': result['http_status'], 'on_cloudflare': False})
                     elif result['on_cloudflare']:
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + result['subdomain'] + " ON CLOUDFLARE NETWORK!")
@@ -979,6 +999,19 @@ parser.set_defaults(no_crimeflare=False)
 
 args = parser.parse_args()
 
+# Set global output modes
+QUIET_MODE = args.quiet
+NO_COLOR = args.no_color
+
+# Override timeout if specified
+if args.timeout != 10:
+    REQUEST_TIMEOUT = args.timeout
+    socket.setdefaulttimeout(REQUEST_TIMEOUT)
+
+# Reinitialize colorama if no-color is set
+if NO_COLOR:
+    colorama.deinit()
+
 if args.tor is True:
     ipcheck_url = 'http://ipinfo.io/ip'
     socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, '127.0.0.1', 9050)
@@ -997,16 +1030,24 @@ if args.tor is True:
 if args.update is True:
     update()
 
+exit_code = 2  # Default: no findings
+
 try:
 
     # Initialize CloudFail
     init(args.target)
 
-    # Scan DNSdumpster.com
-    dnsdumpster(args.target)
+    # Scan DNSdumpster.com (unless --no-dns)
+    if not args.no_dns:
+        dnsdumpster(args.target)
+    else:
+        print_out(Fore.CYAN + "Skipping DNSDumpster scan (--no-dns)")
 
-    # Scan Crimeflare database
-    crimeflare(args.target)
+    # Scan Crimeflare database (unless --no-crimeflare)
+    if not args.no_crimeflare:
+        crimeflare(args.target)
+    else:
+        print_out(Fore.CYAN + "Skipping Crimeflare scan (--no-crimeflare)")
 
     # Query external sources if enabled
     if args.sources:
@@ -1020,8 +1061,31 @@ try:
             if discovered:
                 scan_discovered_subdomains(args.target, discovered, args.threads, args.skip_dup_ips)
 
-    # Scan subdomains with or without TOR
-    subdomain_scan(args.target, args.subdomains, args.threads, args.resume, args.skip_dup_ips)
+    # Scan subdomains with or without TOR (unless --no-subdomain)
+    if not args.no_subdomain:
+        subdomain_scan(args.target, args.subdomains, args.threads, args.resume, args.skip_dup_ips)
+    else:
+        print_out(Fore.CYAN + "Skipping subdomain scan (--no-subdomain)")
+
+    # Determine exit code based on findings
+    if FINDINGS:
+        exit_code = 0  # Success with findings
+
+    # Write JSON output if requested
+    if args.output:
+        output_data = {
+            'target': args.target,
+            'scan_date': datetime.datetime.now().isoformat(),
+            'findings': FINDINGS
+        }
+        try:
+            with open(args.output, 'w') as f:
+                json.dump(output_data, f, indent=2)
+            print_out(Fore.GREEN + "Results written to " + args.output)
+        except Exception as e:
+            print_out(Fore.RED + "Failed to write output file: " + str(e))
 
 except KeyboardInterrupt:
     sys.exit(0)
+
+sys.exit(exit_code)

@@ -1,125 +1,207 @@
 # CloudFail
 
-CloudFail is a tactical reconnaissance tool which aims to gather enough information about a target protected by Cloudflare in the hopes of discovering the location of the server. Using Tor to mask all requests, the tool as of right now has 3 different attack phases.
+CloudFail is a tactical reconnaissance tool that gathers intelligence about a target protected by Cloudflare, aiming to discover the origin server. Using Tor to mask requests, the tool currently runs three phases:
 
-1. Misconfigured DNS scan using DNSDumpster.com.
-2. Scan the Crimeflare.com database.
-3. Bruteforce scan over 2500 subdomains.
+1) Misconfigured DNS scan using DNSDumpster.com
+2) Crimeflare database lookup
+3) Subdomain bruteforce scan
 
 ![Example usage](http://puu.sh/pq7vH/62d56aa41f.png "Example usage")
 
-> Please feel free to contribute to this project. If you have an idea or improvement issue a pull request!
+> Contributions are welcome. Open a pull request if you have an improvement.
 
-#### Requirements
+## Contents
+- Overview
+- Requirements
+- Install
+- Usage
+- External Data Sources (Optional)
+- Performance Options
+- Output Options
+- Phase Toggles
+- Exit Codes
+- Dependencies
+- Disclaimer
+- Donate
 
+## Overview
+CloudFail focuses on information gathering around Cloudflare-protected targets. It combines public data sources and subdomain enumeration to find non-Cloudflare infrastructure that may expose an origin IP.
+
+## Requirements
 **Python 3.11.7 or higher is required.**
 
-#### Disclaimer
-This tool is a PoC (Proof of Concept) and does not guarantee results.  It is possible to setup Cloudflare properly so that the IP is never released or logged anywhere; this is not often the case and hence why this tool exists.
-This tool is only for academic purposes and testing  under controlled environments. Do not use without obtaining proper authorization
-from the network owner of the network under testing.
-The author bears no responsibility for any misuse of the tool.
+## Install
 
-#### Install on Kali/Debian
+### Kali/Debian
+Install Python 3.11+ and pip3:
 
-First we need to install Python 3.11+ and pip3:
+```bash
+sudo apt-get install python3 python3-pip
+```
 
-```$ sudo apt-get install python3 python3-pip```
+Install dependencies:
 
-Then we can install dependencies:
+```bash
+pip3 install -r requirements.txt
+```
 
-```$ pip3 install -r requirements.txt```
+If missing setuptools:
 
-If this fails because of missing setuptools, do this:
+```bash
+sudo apt-get install python3-setuptools
+```
 
-```$ sudo apt-get install python3-setuptools```
-
-#### Install with Docker
-
+### Docker
 The Dockerfile uses Python 3.11 as the base image:
 
-```$ docker build -t cloudfail .```
+```bash
+docker build -t cloudfail .
+```
 
-```$ docker run -it cloudfail --target seo.com```
+```bash
+docker run -it cloudfail --target seo.com
+```
 
-#### Usage
+## Usage
 
-To run a scan against a target:
+Basic scan:
 
-```python3 cloudfail.py --target seo.com```
+```bash
+python3 cloudfail.py --target seo.com
+```
 
-To run a scan against a target using Tor:
+Scan using Tor:
 
-```service tor start```
+```bash
+service tor start
+```
 
-(or if you are using Windows or Mac install vidalia or just run the Tor browser)
+(On Windows or Mac, install Vidalia or run the Tor Browser.)
 
-```python3 cloudfail.py --target seo.com --tor```
+```bash
+python3 cloudfail.py --target seo.com --tor
+```
 
-#### External Data Sources (Optional)
+## External Data Sources (Optional)
+CloudFail can query external free data sources for additional subdomain discovery. These are opt-in and disabled by default.
 
-CloudFail supports querying external free data sources for additional subdomain discovery. These are opt-in and disabled by default.
+Available sources:
 
-**Available sources:**
-- `crtsh` - Certificate Transparency logs via crt.sh
-- `wayback` - Historical URLs from Wayback Machine
-- `alienvault` - Passive DNS from AlienVault OTX
-- `hackertarget` - HackerTarget hostsearch (100 queries/day free)
-- `rapiddns` - RapidDNS subdomain enumeration
-- `threatcrowd` - ThreatCrowd domain report API
-- `urlscan` - URLScan.io search API
-- `viewdns` - ViewDNS IP history lookup
-- `bing` - Bing search engine subdomain discovery
+| Source | Description | Notes |
+| --- | --- | --- |
+| `crtsh` | Certificate Transparency logs via crt.sh | Best for subdomain discovery |
+| `wayback` | Historical URLs from Wayback Machine | Useful for leaked hosts |
+| `alienvault` | Passive DNS from AlienVault OTX | Free tier, no key |
+| `hackertarget` | HackerTarget hostsearch | 100/day without key |
+| `rapiddns` | RapidDNS subdomain enumeration | Web scraping |
+| `threatcrowd` | ThreatCrowd domain report API | Free API |
+| `urlscan` | URLScan.io search API | 100/day without key |
+| `viewdns` | ViewDNS IP history lookup | Web scraping |
+| `bing` | Bing search | `site:*.domain.com` |
 
-**Usage:**
+Usage:
 
 Enable a single source:
-```python3 cloudfail.py --target seo.com --sources crtsh```
+```bash
+python3 cloudfail.py --target seo.com --sources crtsh
+```
 
 Enable multiple sources (comma-separated):
-```python3 cloudfail.py --target seo.com --sources crtsh,wayback,rapiddns```
+```bash
+python3 cloudfail.py --target seo.com --sources crtsh,wayback,rapiddns
+```
 
 Enable all sources:
-```python3 cloudfail.py --target seo.com --sources crtsh,wayback,alienvault,hackertarget,rapiddns,threatcrowd,urlscan,viewdns,bing```
+```bash
+python3 cloudfail.py --target seo.com --sources crtsh,wayback,alienvault,hackertarget,rapiddns,threatcrowd,urlscan,viewdns,bing
+```
 
 Enable all sources with Tor:
-```python3 cloudfail.py --target seo.com --tor --sources crtsh,wayback,alienvault,hackertarget,rapiddns,threatcrowd,urlscan,viewdns,bing```
+```bash
+python3 cloudfail.py --target seo.com --tor --sources crtsh,wayback,alienvault,hackertarget,rapiddns,threatcrowd,urlscan,viewdns,bing
+```
 
-#### Performance Options
+## Performance Options
 
-**Multi-threaded scanning:**
+Multi-threaded scanning:
+```bash
+python3 cloudfail.py --target seo.com --threads 10
+```
 
-Speed up subdomain scanning with concurrent threads:
-```python3 cloudfail.py --target seo.com --threads 10```
+Resume interrupted scans:
+```bash
+python3 cloudfail.py --target seo.com --resume checkpoint.txt
+```
 
-**Resume interrupted scans:**
+Skip duplicate IPs:
+```bash
+python3 cloudfail.py --target seo.com --skip-duplicate-ips
+```
 
-Save progress to a checkpoint file and resume later:
-```python3 cloudfail.py --target seo.com --resume checkpoint.txt```
+Combined example:
+```bash
+python3 cloudfail.py --target seo.com --threads 20 --resume checkpoint.txt --skip-duplicate-ips --sources crtsh,rapiddns
+```
 
-If interrupted, resume from where you left off:
-```python3 cloudfail.py --target seo.com --resume checkpoint.txt```
+## Output Options
 
-**Skip duplicate IPs:**
+JSON output:
+```bash
+python3 cloudfail.py --target seo.com --output results.json
+```
 
-Avoid redundant checks when multiple subdomains resolve to the same IP:
-```python3 cloudfail.py --target seo.com --skip-duplicate-ips```
+Quiet mode (IPs only):
+```bash
+python3 cloudfail.py --target seo.com --quiet
+```
 
-**Combined example:**
-```python3 cloudfail.py --target seo.com --threads 20 --resume checkpoint.txt --skip-duplicate-ips --sources crtsh,rapiddns```
+Disable colors:
+```bash
+python3 cloudfail.py --target seo.com --no-color
+```
 
-#### Dependencies
+Custom timeout:
+```bash
+python3 cloudfail.py --target seo.com --timeout 30
+```
+
+## Phase Toggles
+Skip specific scan phases:
+
+```bash
+# Skip subdomain bruteforce
+python3 cloudfail.py --target seo.com --no-subdomain
+
+# Skip DNSDumpster
+python3 cloudfail.py --target seo.com --no-dns
+
+# Skip Crimeflare database
+python3 cloudfail.py --target seo.com --no-crimeflare
+
+# Only scan external sources
+python3 cloudfail.py --target seo.com --no-subdomain --no-dns --no-crimeflare --sources crtsh
+```
+
+## Exit Codes
+- `0` - Success with findings
+- `1` - User or configuration error
+- `2` - No findings
+
+## Dependencies
 **Python 3.11.7+**
-* argparse
-* beautifulsoup4
-* colorama
-* requests
-* dnspython
-* PySocks
+- argparse
+- beautifulsoup4
+- colorama
+- requests
+- dnspython
+- PySocks
+
+## Disclaimer
+This tool is a PoC (Proof of Concept) and does not guarantee results. It is possible to set up Cloudflare properly so that the IP is never released or logged anywhere; this is not often the case and hence why this tool exists. This tool is only for academic purposes and testing under controlled environments. Do not use without obtaining proper authorization from the network owner of the network under testing. The author bears no responsibility for any misuse of the tool.
 
 ## Donate BTC
 > 13eiCHxmAEaRZDXcgKJVtVnCKK5mTR1u1F
 
-Buy me a beer or coffee... or both! 
+Buy me a beer or coffee... or both.
 If you donate send me a message and I will add you to the credits!
 Thank YOU!
