@@ -62,7 +62,6 @@ To run a scan against a target using Tor:
 * beautifulsoup4
 * colorama
 * requests
-* win_inet_pton
 * dnspython
 * PySocks
 

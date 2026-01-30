@@ -10,12 +10,15 @@ import requests
 import colorama
 import zipfile
 import os
-import win_inet_pton
-import platform
 from colorama import Fore, Style
 from DNSDumpsterAPI import DNSDumpsterAPI
 import dns.resolver
 
+# Default timeout for HTTP requests (seconds)
+REQUEST_TIMEOUT = 10
+
+# Set default socket timeout to prevent hanging
+socket.setdefaulttimeout(REQUEST_TIMEOUT)
 
 colorama.init(Style.BRIGHT)
 
@@ -39,7 +42,7 @@ def ip_to_integer(ip_address):
     # try parsing the IP address first as IPv4, then as IPv6
     for version in (socket.AF_INET, socket.AF_INET6):
         try:
-            ip_hex = win_inet_pton.inet_pton(version, ip_address) if platform.system() == 'Windows' else socket.inet_pton(version, ip_address)
+            ip_hex = socket.inet_pton(version, ip_address)
             ip_integer = int(binascii.hexlify(ip_hex), 16)
 
             return ip_integer, 4 if version == socket.AF_INET else 6
@@ -81,31 +84,47 @@ def subnetwork_to_ip_range(subnetwork):
 def dnsdumpster(target):
     print_out(Fore.CYAN + "Testing for misconfigured DNS using dnsdumpster...")
 
-    res = DNSDumpsterAPI(False).search(target)
+    try:
+        res = DNSDumpsterAPI(False).search(target)
+    except Exception as e:
+        print_out(Fore.RED + "DNSDumpster lookup failed: " + str(e))
+        return
 
-    if res['dns_records']['host']:
+    if not res or 'dns_records' not in res:
+        print_out(Fore.YELLOW + "No results from DNSDumpster")
+        return
+
+    found_any = False
+
+    if res['dns_records'].get('host'):
         for entry in res['dns_records']['host']:
-            provider = str(entry['provider'])
+            provider = str(entry.get('provider', ''))
             if "Cloudflare" not in provider:
+                found_any = True
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:HOST] " + Fore.GREEN + "{domain} {ip} {as} {provider} {country}".format(
                         **entry))
 
-    if res['dns_records']['dns']:
+    if res['dns_records'].get('dns'):
         for entry in res['dns_records']['dns']:
-            provider = str(entry['provider'])
+            provider = str(entry.get('provider', ''))
             if "Cloudflare" not in provider:
+                found_any = True
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:DNS] " + Fore.GREEN + "{domain} {ip} {as} {provider} {country}".format(
                         **entry))
 
-    if res['dns_records']['mx']:
+    if res['dns_records'].get('mx'):
         for entry in res['dns_records']['mx']:
-            provider = str(entry['provider'])
+            provider = str(entry.get('provider', ''))
             if "Cloudflare" not in provider:
+                found_any = True
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:MX] " + Fore.GREEN + "{ip} {as} {provider} {domain}".format(
                         **entry))
+
+    if not found_any:
+        print_out(Fore.YELLOW + "No non-Cloudflare records found via DNSDumpster")
 
 
 def crimeflare(target):
@@ -163,19 +182,23 @@ def init(target):
 def inCloudFlare(ip):
     with open('{}/data/cf-subnet.txt'.format(os.getcwd())) as f:
         for line in f:
-            isInNetwork = ip_in_subnetwork(ip, line)
-            if isInNetwork:
-                return True
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            try:
+                if ip_in_subnetwork(ip, line):
+                    return True
+            except ValueError:
+                continue
         return False
 
 def check_for_wildcard(target):
     resolver = dns.resolver.Resolver(configure=False)
     resolver.nameservers = ['1.1.1.1', '1.0.0.1']
-    #Unsure how exactly I should test, for now simple appending to target. Don't know how to extract only domain to append *. for wildcard test
+    resolver.timeout = 5
+    resolver.lifetime = 10
     try:
-        #Throws exception if none found
         answer = resolver.resolve('*.' + target)
-        #If found, ask user if continue as long until valid answer
         choice = ''
         while choice != 'y' and choice != 'n':
             choice = input("A wildcard DNS entry was found. This will result in all subdomains returning an IP. Do you want to scan subdomains anyway? (y/n): ")
@@ -183,8 +206,9 @@ def check_for_wildcard(target):
             return False
         else:
             return True
-    except:
-        #Return False to not return if no wildcard was found
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, dns.exception.Timeout):
+        return False
+    except Exception:
         return False
 
 def subdomain_scan(target, subdomains):
@@ -215,9 +239,17 @@ def subdomain_scan(target, subdomains):
 
                 subdomain = "{}.{}".format(word.strip(), target)
                 try:
-                    target_http = requests.get("http://" + subdomain)
-                    target_http = str(target_http.status_code)
                     ip = socket.gethostbyname(subdomain)
+                except (socket.gaierror, socket.timeout):
+                    continue
+
+                try:
+                    target_http = requests.get("http://" + subdomain, timeout=REQUEST_TIMEOUT)
+                    target_http = str(target_http.status_code)
+                except requests.exceptions.RequestException:
+                    target_http = "N/A"
+
+                try:
                     ifIpIsWithin = inCloudFlare(ip)
 
                     if not ifIpIsWithin:
@@ -228,8 +260,7 @@ def subdomain_scan(target, subdomains):
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + subdomain + " ON CLOUDFLARE NETWORK!")
                         continue
-
-                except requests.exceptions.RequestException as e:
+                except ValueError:
                     continue
             if (i == 0):
                 print_out(Fore.CYAN + "Scanning finished, we did not find anything, sorry...")
@@ -245,14 +276,14 @@ def update():
     print_out(Fore.CYAN + "Updating CloudFlare subnet...")
     if(args.tor == False):
         headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11'}
-        r = requests.get("https://www.cloudflare.com/ips-v4", headers=headers, cookies={'__cfduid': "d7c6a0ce9257406ea38be0156aa1ea7a21490639772"}, stream=True)
+        r = requests.get("https://www.cloudflare.com/ips-v4", headers=headers, cookies={'__cfduid': "d7c6a0ce9257406ea38be0156aa1ea7a21490639772"}, stream=True, timeout=REQUEST_TIMEOUT)
         with open('data/cf-subnet.txt', 'wb') as fd:
             for chunk in r.iter_content(4000):
                 fd.write(chunk)
     else:
         print_out(Fore.RED + Style.BRIGHT+"Unable to fetch CloudFlare subnet while TOR is active")
     print_out(Fore.CYAN + "Updating Crimeflare database...")
-    r = requests.get("https://cf.ozeliurs.com/ipout", stream=True)
+    r = requests.get("https://cf.ozeliurs.com/ipout", stream=True, timeout=REQUEST_TIMEOUT)
     with open('data/ipout', 'wb') as fd:
         for chunk in r.iter_content(4000):
             fd.write(chunk)
@@ -288,7 +319,7 @@ if args.tor is True:
     socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, '127.0.0.1', 9050)
     socket.socket = socks.socksocket
     try:
-        tor_ip = requests.get(ipcheck_url)
+        tor_ip = requests.get(ipcheck_url, timeout=REQUEST_TIMEOUT)
         tor_ip = str(tor_ip.text)
 
         print_out(Fore.WHITE + Style.BRIGHT + "TOR connection established!")
