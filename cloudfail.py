@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import print_function
 import argparse
 import re
 import sys
@@ -16,8 +15,6 @@ import platform
 from colorama import Fore, Style
 from DNSDumpsterAPI import DNSDumpsterAPI
 import dns.resolver
-import collections
-collections.Callable = collections.abc.Callable
 
 
 colorama.init(Style.BRIGHT)
@@ -42,7 +39,7 @@ def ip_to_integer(ip_address):
     # try parsing the IP address first as IPv4, then as IPv6
     for version in (socket.AF_INET, socket.AF_INET6):
         try:
-            ip_hex = win_inet_pton.inet_pton(version, ip_address) if platform == 'Windows' else socket.inet_pton(version, ip_address)
+            ip_hex = win_inet_pton.inet_pton(version, ip_address) if platform.system() == 'Windows' else socket.inet_pton(version, ip_address)
             ip_integer = int(binascii.hexlify(ip_hex), 16)
 
             return ip_integer, 4 if version == socket.AF_INET else 6
@@ -203,14 +200,17 @@ def subdomain_scan(target, subdomains):
     else:
         subdomainsList = "subdomains.txt"
     try:
-        with open("data/" + subdomainsList, "r") as wordlist:
-            numOfLines = len(open("data/subdomains.txt").readlines())
-            numOfLinesInt = numOfLines
-            numOfLines = str(numOfLines)
-            print_out(Fore.CYAN + "Scanning " + numOfLines + " subdomains (" + subdomainsList + "), please wait...")
+        subdomainsPath = "data/" + subdomainsList
+        with open(subdomainsPath, "r") as countFile:
+            numOfLinesInt = sum(1 for _ in countFile)
+        numOfLines = str(numOfLinesInt)
+        print_out(Fore.CYAN + "Scanning " + numOfLines + " subdomains (" + subdomainsList + "), please wait...")
+        # Guard against division by zero for small lists
+        progressInterval = max(1, numOfLinesInt // 100)
+        with open(subdomainsPath, "r") as wordlist:
             for word in wordlist:
                 c += 1
-                if (c % int((float(numOfLinesInt) / 100.0))) == 0:
+                if (c % progressInterval) == 0:
                     print_out(Fore.CYAN + str(round((c / float(numOfLinesInt)) * 100.0, 2)) + "% complete", '\r')
 
                 subdomain = "{}.{}".format(word.strip(), target)
@@ -295,8 +295,8 @@ if args.tor is True:
         print_out(Fore.WHITE + Style.BRIGHT + "New IP: " + tor_ip)
 
     except requests.exceptions.RequestException as e:
-        print(e, net_exc)
-        sys.exit(0)
+        print_out(Fore.RED + "TOR connection failed: " + str(e))
+        sys.exit(1)
 
 if args.update is True:
     update()

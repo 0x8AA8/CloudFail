@@ -3,8 +3,6 @@ This is the (unofficial) Python API for dnsdumpster.com Website.
 Using this code, you can retrieve subdomains
 
 """
-
-from __future__ import print_function
 import requests
 import re
 import sys

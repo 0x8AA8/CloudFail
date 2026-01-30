@@ -10,6 +10,10 @@ CloudFail is a tactical reconnaissance tool which aims to gather enough informat
 
 > Please feel free to contribute to this project. If you have an idea or improvement issue a pull request!
 
+#### Requirements
+
+**Python 3.11.7 or higher is required.**
+
 #### Disclaimer
 This tool is a PoC (Proof of Concept) and does not guarantee results.  It is possible to setup Cloudflare properly so that the IP is never released or logged anywhere; this is not often the case and hence why this tool exists.
 This tool is only for academic purposes and testing  under controlled environments. Do not use without obtaining proper authorization
@@ -18,17 +22,25 @@ The author bears no responsibility for any misuse of the tool.
 
 #### Install on Kali/Debian
 
-First we need to install pip3 for python3 dependencies:
+First we need to install Python 3.11+ and pip3:
 
-```$ sudo apt-get install python3-pip```
+```$ sudo apt-get install python3 python3-pip```
 
-Then we can run through dependency checks:
+Then we can install dependencies:
 
 ```$ pip3 install -r requirements.txt```
 
 If this fails because of missing setuptools, do this:
 
-```sudo apt-get install python3-setuptools```
+```$ sudo apt-get install python3-setuptools```
+
+#### Install with Docker
+
+The Dockerfile uses Python 3.11 as the base image:
+
+```$ docker build -t cloudfail .```
+
+```$ docker run -it cloudfail --target seo.com```
 
 #### Usage
 
@@ -44,19 +56,15 @@ To run a scan against a target using Tor:
 
 ```python3 cloudfail.py --target seo.com --tor```
 
-> Please make sure you are running with Python3 and not Python2.*.
-
-
 #### Dependencies
-**Python3**
+**Python 3.11.7+**
 * argparse
+* beautifulsoup4
 * colorama
-* socket
-* binascii
-* datetime
 * requests
 * win_inet_pton
 * dnspython
+* PySocks
 
 ## Donate BTC
 > 13eiCHxmAEaRZDXcgKJVtVnCKK5mTR1u1F
