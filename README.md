@@ -56,6 +56,58 @@ To run a scan against a target using Tor:
 
 ```python3 cloudfail.py --target seo.com --tor```
 
+#### External Data Sources (Optional)
+
+CloudFail supports querying external free data sources for additional subdomain discovery. These are opt-in and disabled by default.
+
+**Available sources:**
+- `crtsh` - Certificate Transparency logs via crt.sh
+- `wayback` - Historical URLs from Wayback Machine
+- `alienvault` - Passive DNS from AlienVault OTX
+- `hackertarget` - HackerTarget hostsearch (100 queries/day free)
+- `rapiddns` - RapidDNS subdomain enumeration
+- `threatcrowd` - ThreatCrowd domain report API
+- `urlscan` - URLScan.io search API
+- `viewdns` - ViewDNS IP history lookup
+- `bing` - Bing search engine subdomain discovery
+
+**Usage:**
+
+Enable a single source:
+```python3 cloudfail.py --target seo.com --sources crtsh```
+
+Enable multiple sources (comma-separated):
+```python3 cloudfail.py --target seo.com --sources crtsh,wayback,rapiddns```
+
+Enable all sources:
+```python3 cloudfail.py --target seo.com --sources crtsh,wayback,alienvault,hackertarget,rapiddns,threatcrowd,urlscan,viewdns,bing```
+
+Enable all sources with Tor:
+```python3 cloudfail.py --target seo.com --tor --sources crtsh,wayback,alienvault,hackertarget,rapiddns,threatcrowd,urlscan,viewdns,bing```
+
+#### Performance Options
+
+**Multi-threaded scanning:**
+
+Speed up subdomain scanning with concurrent threads:
+```python3 cloudfail.py --target seo.com --threads 10```
+
+**Resume interrupted scans:**
+
+Save progress to a checkpoint file and resume later:
+```python3 cloudfail.py --target seo.com --resume checkpoint.txt```
+
+If interrupted, resume from where you left off:
+```python3 cloudfail.py --target seo.com --resume checkpoint.txt```
+
+**Skip duplicate IPs:**
+
+Avoid redundant checks when multiple subdomains resolve to the same IP:
+```python3 cloudfail.py --target seo.com --skip-duplicate-ips```
+
+**Combined example:**
+```python3 cloudfail.py --target seo.com --threads 20 --resume checkpoint.txt --skip-duplicate-ips --sources crtsh,rapiddns```
+
 #### Dependencies
 **Python 3.11.7+**
 * argparse
