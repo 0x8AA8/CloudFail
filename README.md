@@ -491,26 +491,98 @@ pip3 install -r requirements.txt
 
 ---
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer & Legal Notice
+
+> **IMPORTANT: Read before using this tool**
+
+### ⚖️ Legal Compliance
+
+This tool is provided as a **Proof of Concept (PoC)** for educational and authorized security testing purposes only. By using CloudFail, you agree to the following terms:
 
 <table>
 <tr>
-<td>
-<b>⚖️ Legal Notice</b><br><br>
-This tool is a <b>Proof of Concept (PoC)</b> and does not guarantee results. It is possible to configure Cloudflare properly so that the origin IP is never exposed; this is not always the case, hence why this tool exists.<br><br>
-<b>This tool is intended for:</b>
-<ul>
-<li>Academic research</li>
-<li>Authorized penetration testing</li>
-<li>Security assessments with proper authorization</li>
-</ul>
-<b>Do not use</b> without obtaining proper authorization from the network owner. The author bears no responsibility for any misuse of this tool.
+<td width="50%">
+
+#### ✅ Permitted Use
+
+- **Academic Research** - Security studies and thesis work
+- **Authorized Penetration Testing** - With written client consent
+- **Bug Bounty Programs** - Within program scope and rules
+- **Personal Assets** - Testing your own infrastructure
+- **Security Assessments** - With proper contractual authorization
+- **CTF Competitions** - Capture The Flag challenges
+
+</td>
+<td width="50%">
+
+#### ❌ Prohibited Use
+
+- Unauthorized access to systems you don't own
+- Reconnaissance for malicious purposes
+- Violation of computer fraud laws (CFAA, CMA, etc.)
+- Activities that violate Terms of Service
+- Any illegal or unethical activities
+- Commercial use without proper licensing
+
 </td>
 </tr>
 </table>
 
+### 📋 User Responsibilities
+
+| Requirement | Description |
+|:-----------:|-------------|
+| **Authorization** | Obtain explicit written permission before scanning any target |
+| **Scope** | Only test systems within your authorized scope |
+| **Documentation** | Keep records of authorization for all engagements |
+| **Compliance** | Follow all applicable local, state, and federal laws |
+| **Ethics** | Adhere to responsible disclosure practices |
+
+### 🛡️ Technical Disclaimer
+
+```
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+- No guarantee of results - Cloudflare configurations vary
+- Origin IP exposure depends on target misconfiguration
+- False positives/negatives may occur
+- Network conditions may affect scan accuracy
+```
+
+### ⚠️ Liability Waiver
+
+<table>
+<tr>
+<td>
+<b>The authors and contributors of CloudFail:</b>
+<ul>
+<li>Bear <b>NO responsibility</b> for any misuse of this tool</li>
+<li>Are <b>NOT liable</b> for any damages caused by unauthorized use</li>
+<li>Do <b>NOT endorse</b> any illegal activities</li>
+<li>Provide <b>NO legal protection</b> to users who violate laws</li>
+</ul>
+
+<b>YOU are solely responsible</b> for ensuring your use of this tool complies with all applicable laws and regulations in your jurisdiction.
+
+<br><br>
+<i>By using this tool, you acknowledge that you have read, understood, and agreed to these terms.</i>
+</td>
+</tr>
+</table>
+
+### 📚 Relevant Laws (Non-exhaustive)
+
+| Region | Legislation |
+|:------:|-------------|
+| 🇺🇸 USA | Computer Fraud and Abuse Act (CFAA) |
+| 🇬🇧 UK | Computer Misuse Act 1990 (CMA) |
+| 🇪🇺 EU | Directive 2013/40/EU on Attacks Against Information Systems |
+| 🇦🇺 Australia | Criminal Code Act 1995 (Part 10.7) |
+| 🇨🇦 Canada | Criminal Code Section 342.1 |
+
 ---
 
 <p align="center">
-  Made with ❤️ for the security community
+  Made with ❤️ for the security community<br>
+  <sub>Use responsibly. Hack ethically.</sub>
 </p>
