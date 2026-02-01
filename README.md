@@ -277,18 +277,6 @@ This tool is a <b>Proof of Concept (PoC)</b> and does not guarantee results. It 
 
 ---
 
-<p align="center">
-  <b>☕ Support the Project</b>
-</p>
-
-<p align="center">
-  <code>BTC: 13eiCHxmAEaRZDXcgKJVtVnCKK5mTR1u1F</code>
-</p>
-
-<p align="center">
-  Buy me a beer or coffee... or both!<br>
-  If you donate, send me a message and I'll add you to the credits!
-</p>
 
 <p align="center">
   <b>Thank you! 🙏</b>
