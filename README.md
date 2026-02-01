@@ -92,28 +92,262 @@
 
 > ⚠️ **Python 3.11.7 or higher is required**
 
-### 🐧 Kali/Debian
+---
+
+### 🐧 Linux
+
+<details>
+<summary><b>Debian / Ubuntu / Kali</b></summary>
 
 ```bash
-# Install Python 3.11+ and pip3
-sudo apt-get install python3 python3-pip
+# Update package list
+sudo apt update
+
+# Install Python 3.11+ and pip
+sudo apt install python3 python3-pip python3-venv git
+
+# Clone the repository
+git clone https://github.com/m0rtem/CloudFail.git
+cd CloudFail
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
 
 # Install dependencies
 pip3 install -r requirements.txt
 
-# If missing setuptools
-sudo apt-get install python3-setuptools
+# Run CloudFail
+python3 cloudfail.py --target example.com
 ```
 
+**Tor Support (optional):**
+```bash
+sudo apt install tor
+sudo systemctl start tor
+sudo systemctl enable tor  # Start on boot
+python3 cloudfail.py --target example.com --tor
+```
+
+</details>
+
+<details>
+<summary><b>Fedora / RHEL / CentOS</b></summary>
+
+```bash
+# Install Python 3.11+ and pip
+sudo dnf install python3 python3-pip git
+
+# Clone the repository
+git clone https://github.com/m0rtem/CloudFail.git
+cd CloudFail
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip3 install -r requirements.txt
+
+# Run CloudFail
+python3 cloudfail.py --target example.com
+```
+
+**Tor Support (optional):**
+```bash
+sudo dnf install tor
+sudo systemctl start tor
+python3 cloudfail.py --target example.com --tor
+```
+
+</details>
+
+<details>
+<summary><b>Arch Linux</b></summary>
+
+```bash
+# Install Python and pip
+sudo pacman -S python python-pip git
+
+# Clone the repository
+git clone https://github.com/m0rtem/CloudFail.git
+cd CloudFail
+
+# Create virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run CloudFail
+python cloudfail.py --target example.com
+```
+
+**Tor Support (optional):**
+```bash
+sudo pacman -S tor
+sudo systemctl start tor
+python cloudfail.py --target example.com --tor
+```
+
+</details>
+
+---
+
+### 🪟 Windows
+
+<details>
+<summary><b>Windows 10/11 Installation</b></summary>
+
+#### Option 1: Standard Installation
+
+1. **Install Python 3.11+**
+   - Download from [python.org](https://www.python.org/downloads/)
+   - ✅ Check "Add Python to PATH" during installation
+
+2. **Clone or Download CloudFail**
+   ```powershell
+   git clone https://github.com/m0rtem/CloudFail.git
+   cd CloudFail
+   ```
+
+3. **Create Virtual Environment (recommended)**
+   ```powershell
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
+
+4. **Install Dependencies**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+5. **Run CloudFail**
+   ```powershell
+   python cloudfail.py --target example.com
+   ```
+
+#### Option 2: Using Windows Subsystem for Linux (WSL)
+
+```powershell
+# Enable WSL (run as Administrator)
+wsl --install
+
+# After restart, open Ubuntu terminal and follow Linux instructions above
+```
+
+**Tor Support (Windows):**
+1. Download and install [Tor Browser](https://www.torproject.org/download/)
+2. Launch Tor Browser (keep it running in background)
+3. Run CloudFail with Tor:
+   ```powershell
+   python cloudfail.py --target example.com --tor
+   ```
+
+> 💡 **Tip:** Tor Browser runs SOCKS proxy on `127.0.0.1:9150` by default
+
+</details>
+
+---
+
+### 🍎 macOS
+
+<details>
+<summary><b>macOS Installation</b></summary>
+
+```bash
+# Install Homebrew (if not installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python 3.11+
+brew install python@3.11 git
+
+# Clone the repository
+git clone https://github.com/m0rtem/CloudFail.git
+cd CloudFail
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip3 install -r requirements.txt
+
+# Run CloudFail
+python3 cloudfail.py --target example.com
+```
+
+**Tor Support (optional):**
+```bash
+brew install tor
+brew services start tor
+python3 cloudfail.py --target example.com --tor
+```
+
+</details>
+
+---
+
 ### 🐳 Docker
+
+The easiest way to run CloudFail without worrying about dependencies.
+
+<details>
+<summary><b>Docker Installation</b></summary>
+
+#### Quick Start
 
 ```bash
 # Build the image
 docker build -t cloudfail .
 
-# Run CloudFail
-docker run -it cloudfail --target seo.com
+# Run a scan
+docker run --rm cloudfail --target example.com
 ```
+
+#### With Tor Support
+
+```bash
+# Run with Tor (container includes Tor)
+docker run --rm cloudfail --target example.com --tor
+```
+
+#### Save Results to Host
+
+```bash
+# Mount a volume to save output
+docker run --rm -v $(pwd)/results:/app/results cloudfail \
+    --target example.com --output /app/results/scan.json
+```
+
+#### Docker Compose (Optional)
+
+Create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  cloudfail:
+    build: .
+    volumes:
+      - ./results:/app/results
+    command: ["--target", "example.com", "--tor", "--output", "/app/results/scan.json"]
+```
+
+Run with:
+```bash
+docker-compose run --rm cloudfail
+```
+
+#### Pre-built Image (if available)
+
+```bash
+docker pull m0rtem/cloudfail:latest
+docker run --rm m0rtem/cloudfail --target example.com
+```
+
+</details>
 
 ---
 
@@ -274,13 +508,6 @@ This tool is a <b>Proof of Concept (PoC)</b> and does not guarantee results. It 
 </td>
 </tr>
 </table>
-
----
-
-
-<p align="center">
-  <b>Thank you! 🙏</b>
-</p>
 
 ---
 
